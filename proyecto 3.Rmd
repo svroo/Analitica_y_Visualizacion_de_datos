@@ -1,0 +1,164 @@
+---
+title: "Distancia Mahalanobis"
+output: default
+  pdf_document: default
+  p: default
+---
+La métrica de Mahalanobis es una métrica invariante de escala que proporciona una medida de la distancia entre un punto $x\in R^n$ generando desde una determinada distribución $P$ y la media $\mu = E_P (x)$ de la distribución. Si se nota con $\sum = E_P (x - \mu )^2$ la matriz de covarianza, entonces, la métrica de Mahalanobis se define por:
+
+$$d_M (x,\mu)=\sqrt{(x-\mu)^T \sum{-1}(x-\mu)}$$ 
+de manera equivalente, 
+$$d^2_M(x,\mu) = (x-\mu)^T \sum-1(x-\mu)$$
+Esta distancia es adecuada para diferenciar individuos o poblaciones mediante k variables aleatorias.
+
+### Proyecto 3
+Programa en R que permita calcular la distancia de Mahalanobis sobre el conjunto de datos.
+1. Cuantificar el valor de la distancia de Mahalanobis entre las flores: Setosa, Versicolor y Virginica, tomando como base la longitud y anchura del sépalo y pétalo de cada flor.
+2. Graficar los valores de las distancias calculadas.
+
+Tenemos que obtener la matriz de **covarianzas muestrales** $\Sigma$ o S viene dada por la siguiente expresión:
+$$\Sigma=\begin{bmatrix}S_{11} & S_{12} & S_{13} & S_{14}\\ S_{21} & S_{22} & S_{23} & S_{24} \\ S_{31} & S_{32} & S_{33} & S_{34} \\ S_{41} & S_{42} & S_{43} & S_{44}\end{bmatrix} \\ S_{ij} = \sum_{k=1}^n = (x_{ki} - \overline{x}_i ) (x_{kj} - \overline{x}_j )$$
+
+Primero declaramos las funciones para obtener la matriz de covarianza
+
+```{r}
+# Primero definimos la funcion para calcular su promedio
+centroides <- function(a){
+  # a = vector a querer obtener su promedio
+  dims <- dim(a)
+  
+  if(is.null(dims)){
+    suma = 0
+    n = length(a)
+    for (i in a){
+      suma = i + suma
+    }
+    return(suma/n)
+  }
+  else{
+    n <- length(a[,1])
+    rest <- c()
+    for (i in 1:dimz[2]){
+      suma <- 0
+      for (j in 1:dimz[1]){
+        suma <- X[j,i] + suma
+      }
+      rest <- append(rest,suma/n)
+    }
+    return(rest)
+  }
+}
+
+matriz_valor_menos_media <- function(a, prom){
+  if (length(a) == 0 || length(prom) == 0){
+    return('Matriz no valida')
+  }
+  
+  dimz = dim(a)
+  bfinal <- matrix(NA, dimz[1], dimz[2])
+  
+  for (i in 1:dimz[2]){
+    b_columna <- (a[,i] - prom[i])
+    bfinal[,i] <- b_columna
+  }
+  return(bfinal)
+}
+
+transpuesta <- function(a){
+  dimz <- dim(a)
+  
+  if(is.null(dimz)){
+    n = length(a)
+    mat <- matrix(NA, n, 1)
+    for (i in 1:n){
+      r <- (i)
+      mat[i,] <- r
+    }
+    return(mat)
+  }
+  else{
+    transpues <- matrix(NA, dimz[2], dimz[1])
+    for (i in 1:dimz[1]){
+      columna <- (a[i,])
+      transpues[,i] <- columna
+    }
+    return(transpues)
+  }
+}
+Matriz_cov <- function(a){
+  if(is.null(a)){
+    return('Matriz no valida')
+  }
+  
+  
+  promedios = c()
+  dims <- dim(a)
+  constante = 1 / (dims[1] - 1)
+  
+  for (i in 1:dims[2]){
+    promedios <- append(promedios, centroides(a[,i]))
+  }
+  
+  mat = matriz_valor_menos_media(a= a, prom = promedios)
+  
+  # Obtencion de la transpuesta
+  #t_mat = t(mat)
+  t_mat = transpuesta(mat)
+  
+  pre_cov = t_mat %*% mat
+  
+  mat_cov = pre_cov * constante
+  
+  return(mat_cov)
+}
+
+```
+
+
+Procederemos con cargar el dataset con el que vamos a trabajar
+
+```{r}
+# Importamos de data set
+data("iris")
+print(iris)
+```
+
+Vamos a calcular la distancia de Mahalanobis la cual esta dado por la formula:
+$$d^2_M (i,j) = (x^{(i)}-x^{(j)})\Sigma^{-1} (x^{(i)}-x^{(j)})^T$$
+*Nota: Si quisieramos la distancia hay que sacar la $\sqrt{i,j}$
+
+La distancia cuadrática de Mahalanobis del i-ésimo individuo al centroide de la matriz de datos, se designa como$d^2_M(i)$. Esta dado por la siguiente formula:
+$$d^2_M(i) = (x^{i}-c)\Sigma^{-1}(x^{(i)}-c)^T$$
+
+```{r}
+mahalanobis <- function(x, center, cov, inverted=FALSE, ...)
+{
+    x <- if(is.vector(x)) matrix(x, ncol=length(x)) else as.matrix(x)
+    
+    if(!identical(center, FALSE))
+	  x <- sweep(x, 2L, center)# = "x - center"
+    
+    if(!inverted)
+	  cov <- solve(cov, ...)
+    setNames(rowSums(x %*% cov * x), rownames(x))
+}
+
+```
+
+Empezaremos dividiendo los datos en tipos de planta:
+```{r}
+# Filtramos los datos por especie de flor
+dataSetosa <- subset(iris, iris$Species == 'setosa')
+dataVersicolor <- subset(iris, iris$Species == 'versicolor')
+dataVirginica <- subset(iris, iris$Species == 'virginica')
+
+# Eliminamos la columna de especie
+dataSetosa <- dataSetosa[,-5]
+dataVersicolor <- dataVersicolor[,-5]
+dataVirginica <- dataVirginica[,-5]
+```
+
+Empezaremos calculando la distancia entre los datos de petalo de la Setosa:
+```{r}
+plot(dataSetosa$)
+```

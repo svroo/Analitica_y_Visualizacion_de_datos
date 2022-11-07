@@ -1,0 +1,279 @@
+---
+title: "Proyecto 1"
+output: html_notebook
+---
+**Nombres de los integrantes:**
+
+- Salazar Vega Rodrigo
+- Verduzco Lozano Iván Antonio
+
+A partir del conjunto de datos Iris, realizar un programa en R que permita calcular:
+
+1. Área del sépalo y pétalo
+2. Media aritmética y Media Generalizada
+3. Mediana
+4. Moda
+5. Varianza y desviación estándar
+6. Valores mínimos y máximos
+
+de cada una de las 3 especies de flores Iris.
+
+```{r}
+data("iris")
+head(iris)
+```
+
+Primero filtraremos los datos por especie de flor
+
+```{r}
+# Filtramos los datos por especie de flor
+dataSetosa <- subset(iris, iris$Species == 'setosa')
+dataVersicolor <- subset(iris, iris$Species == 'versicolor')
+dataVirginica <- subset(iris, iris$Species == 'virginica')
+
+# Eliminamos la columna de especie
+dataSetosa <- dataSetosa[,-5]
+dataVersicolor <- dataVersicolor[,-5]
+dataVirginica <- dataVirginica[,-5]
+```
+
+Para calcular una aproximación del **área del pétalo** y sépalo se puede calcular mediante el área de una elipse, semejandose más a la figura de estos componentes de la flor.
+
+![](https://www.integratedots.com/wp-content/uploads/2019/06/iris_petal-sepal-e1560211020463.png)
+
+Sabiendo que el área de de una elipse es $A = \pi \times a\times b$, siendo $a$ la mitad del largo y $b$ la mitad del ancho.
+
+```{r}
+# Definimos funcion para calcular el área del sépalo
+calcularAreaSepalo <- function(datos){
+  a <- datos$Sepal.Length
+  b <- datos$Sepal.Width
+  # Calculamos el área con el área de una elipse
+  areaSepalo <- a*b*pi*(1/4)
+  return(areaSepalo)
+}
+
+# Definimos funcion para calcular el área del sépalo
+calcularAreaPetalo <- function(datos){
+  a <- datos$Petal.Length
+  b <- datos$Petal.Width
+  # Calculamos el área con el área de una elipse
+  areaPetalo <- a*b*pi*(1/4)
+  return(areaPetalo)
+}
+```
+
+Para calcular la **media aritmética**, se tiene la fórmula: 
+$$
+\bar{x} = \frac{\sum^{n}_{i = 1}x_i}{n}
+$$
+
+o la **media generalizada** conforme se vió en clase de la siguiente manera:
+$$
+m_\alpha(X) = \sqrt[\alpha]{\frac{1}{n}\sum^{n}_{i = 1}x_i^\alpha}
+$$
+
+Donde $\alpha$ se define de la siguiente manera:
+
+- **Mínimo** $\quad \alpha \rightarrow -\infty$
+- **Media armónica** $\quad \alpha = -1$
+- **Media aritmética** $\quad \alpha = 1$
+- **Media cuadráticaa** $\quad \alpha = 2$
+- **Máximo** $\quad \alpha \rightarrow \infty$
+```{r}
+# Definimos funcion de la media generalizada dependiendo el parámetro alfa
+mediaGeneralizada<- function(datos, alfa){
+  # Definimos variables para acumular suma y contar registros
+  suma = 0
+  contador = 0
+  
+  # Inicializamos ciclo donde se va a ir sumando y contando
+  for (i in datos){
+    suma = i**alfa + suma
+    contador = contador + 1
+  }
+  
+  # Retornamos la media calculada
+  return (suma / contador)**(1/alfa)
+}
+
+```
+
+El calculo de la **mediana** se define de la siguiente manera:
+
+$$
+Me = \frac{x_{n+1}}{2} \text{ si $n$ es impar} \quad \text{ó} \quad
+Me = \frac{x_{\frac{n}{2}} + x_{\frac{n}{2}+1}}{2} \text{ $n$ es par}
+$$
+```{r}
+# Definimos función de la mediana
+mediana <- function(datos){
+  
+  # Ordenamos los datos
+  datos <- sort(datos)
+  
+  # Calculamos la longitud
+  n <- 0
+  for (i in datos){
+    n = n + 1
+  }
+  mediana <- 0
+  
+  # si es par
+  if(n %% 2 == 0){
+    mediana <- (datos[n/2] + datos[n/2+1])/2
+  }else{ # Si es impar
+    mediana <- datos[n/2+1]
+  }
+  
+  return(mediana)
+}
+```
+
+La **moda** a grandes rasgos es el dato que más se repite dentro de nuestra muestra, pero puede o no existir más de una moda, teniendo en algunos casos bimodalidad o hasta multimodalidad dentro de nuestros datos.
+
+```{r}
+# Función para el cálculo de la moda
+moda <- function(data){
+  cambio = 0
+  maximo = 0
+  moda = 0
+  par = data[1]
+  
+  for (i in data){
+    if (par != i){
+      cambio = cambio + 1
+      if (cambio > maximo){
+        maximo = cambio
+        moda = i
+      }
+       
+    }
+    
+  }
+    return (moda)
+}
+```
+
+El cálculo de la varianza y la desviación estándar, siendo estimadores de dispersión esta dado por las siguientes formulas, usando sus respectivos modelos matemáticos para una **muestra**.
+
+$$
+\sigma^2 = \frac{\sum^{N}_{1} \left(x_i - \bar{x}\right)^2}{n-1} \qquad \sigma = \sqrt{\frac{\sum^{N}_{1} \left(x_i - \bar{x}\right)^2}{n-1}} 
+$$
+
+```{r}
+# Definimos la función para calcular varianza
+varianza <- function(data){
+  
+  promedio <- mediaGeneralizada(data, 1)
+  # Definimos variables de apoyo y la resta entre el elemento y el promedio
+  sumatoria = 0
+  contador = 0
+  resta = data - promedio
+  
+  # Hacemos la sumatoria antes de dividirla entre la cantidad de observaciones
+  for (x in resta){
+    sumatoria = (x ** 2) + sumatoria
+    contador = contador + 1
+  }
+  
+  return (sumatoria / contador)
+}
+
+# Definimos la función de desviacion estándar
+desviacion_estandar <- function(data){
+  return(sqrt(varianza(data)))
+}
+```
+
+Por último, el método para calcular los valores mínimos y máximos:
+
+```{r}
+# Funcion para calcular el máximo de una columna
+maximo <- function(data){
+  candidato = data[1]
+  for (elemento in data){
+    if (elemento > candidato){
+      candidato = elemento
+    }
+  }
+  return (candidato)
+}
+
+# Funcion para calcular el mínimo de una columna
+minimo <- function(data){
+  candidato = data[1]
+  for (elemento in data){
+    if (elemento < candidato){
+      candidato = elemento
+    }
+  }
+  return (candidato)
+}
+```
+
+
+```{r}
+resumenFunciones<-function(datos){
+  # Añadimos el Area a los datos
+  datos$Sepal.Area <- calcularAreaSepalo(datos)
+  datos$Petal.Area <- calcularAreaPetalo(datos)
+  head(datos)
+  
+  resumen <- data.frame()
+  
+  medias <- c()
+  medianas <- c()
+  modas <- c()
+  varianzas <- c()
+  desviaciones <- c()
+  mins <- c()
+  maxs <- c()
+  
+  for (i in datos) {
+    # Calculamos media aritmética por la naturaleza de los datos
+    medias <- append(medias, round(mediaGeneralizada(i, 1), 2))
+    # Calculamos la mediana 
+    medianas <- append(medianas, round(mediana(i), 2))
+    # Calculamos la moda
+    modas <- append(modas, round(moda(i), 2))
+    # Calculamos la varianza
+    varianzas <- append(varianzas, round(varianza(i),4))
+    # Calculamos la desviación estándar
+    desviaciones <- append(desviaciones, round(desviacion_estandar(i), 4))
+    # Calculamos el valor mínimo
+    mins <- append(mins, round(minimo(i), 2))
+    # Calculamos el valor máximo
+    maxs <- append(maxs, round(maximo(i), 2))
+  }
+  
+  # Los resultados obtenidos en un dataframe
+  resumen = data.frame(medias, medianas, modas, varianzas, desviaciones, mins, maxs)
+  row.names(resumen) <- names(datos)
+  
+  return(resumen)
+}
+```
+
+Con el fin de agrupar las funciones anteriores para ser llamadas, tendremos la siguiente función prinicpal:
+
+```{r}
+main <- function(){
+  # Datos estadísticos de la especie Setosa
+  resumenSetosa <- resumenFunciones(dataSetosa)
+  print('Setosa')
+  print(resumenSetosa)
+  
+  # Datos estadísticos de la especie Versicolor
+  resumenVersicolor <- resumenFunciones(dataVersicolor)
+  print('Versicolor')
+  print(resumenVersicolor)
+  
+  # Datos estadísticos de la especie Virgínica
+  resumenVirginica <- resumenFunciones(dataVirginica)
+  print('Virginica')
+  print(resumenVirginica)
+}
+main()
+```
+

@@ -1,0 +1,339 @@
+---
+title: "Proyecto 2"
+output: html_notebook
+---
+
+**Nombres de los integrantes:**
+
+- Salazar Vega Rodrigo
+- Verduzco Lozano Iván Antonio
+
+Programa en R que permita calcular la disimilitud con base en la **Norma
+Euclídea** sobre el conjunto de datos Iris, para las 3 clases de flores que están
+descritas en el conjunto de datos
+
+1. Calcular el valor de disimilitud con la norma Euclídea entre las
+flores: Setosa, Versicolor y Virginica, tomando como base la longitud y anchura
+(área) del sépalo y pétalo de cada flor.
+
+2. Establecer el umbral de disimilitud entre las 3 clases de flores, con
+base en los valores de área de cada flor.
+
+3. Calcular la distancia entre los elementos de la clase
+Setosa-Versicolor; Setosa-Virginica; Versicolor-Virginica; Versicolor-Setosa;
+Virginica-Setosa; Virginica-Versicolor.
+
+4. Calcular el producto interno entre cada clase de flores
+Setosa-Versicolor; Setosa-Virginica; Versicolor-Virginica; Versicolor-Setosa;
+Virginica-Setosa; Virginica-Versicolor
+
+(El punto número 5 se concluyó que es el mismo que el punto 4)
+
+```{r}
+data("iris")
+head(iris)
+```
+
+Para calcular la norma euclidia se tiene que:
+$$
+||x||_2= \sqrt{x_1^2+x_2^2+x_3^2+\cdots+x_n^2}=\left(\sum_{j=1}^nx_j^2\right)^{\frac{1}{2}}
+$$
+```{r}
+# Definimos funcion para calcular la norma euclidia
+normaEuclidiana <- function(datos){
+  suma <- 0
+  for (i in datos) {
+    suma <- suma + i*i
+  }
+  norma <- suma**(1/2)
+  return(norma)
+}
+```
+
+Para hallar el umbral de disimilitud de cada especie de flor, se usará el coficiente de de correlación muestral de Pearson, definido de la siguiente manera:
+
+$$
+r_{xy}=\frac{\sum_{i=1}^n(x_i-\bar{x})(y_i-\bar{y})}
+{\sqrt{\sum_{i=1}^n(x_i-\bar{x})^2}\sqrt{\sum_{i=1}^n(y_i-\bar{y})^2}}
+$$
+
+```{r}
+# Definimos funcion de la media generalizada dependiendo el parámetro alfa
+mediaGeneralizada<- function(datos, alfa){
+  suma = 0
+  contador = 0
+  
+  # Inicializamos ciclo donde se va a ir sumando y contando
+  for (i in datos){
+    suma = i**alfa + suma
+    contador = contador + 1
+  }
+  
+  # Retornamos la media calculada
+  return (suma / contador)**(1/alfa)
+}
+
+# Definimos función del calculo de coeficiente de correlación muestral de Pearson
+pearsonMuestral <- function(X, Y){
+  sumaNumerador <- 0
+  sumaDenominador1 <- 0
+  sumaDenominador2 <- 0
+  mediaX <- mediaGeneralizada(X,1)
+  mediaY <- mediaGeneralizada(Y,1)
+  
+  for (i in 1:length(X)) {
+    sumaNumerador <- (X[i]-mediaX)*(Y[i]-mediaY) + sumaNumerador
+    sumaDenominador1 <- (X[i]-mediaX)**2 + sumaDenominador1
+    sumaDenominador2 <- (Y[i]-mediaY)**2 + sumaDenominador2
+  }
+  
+  rxy <- sumaNumerador/(sqrt(sumaDenominador1)*sqrt(sumaDenominador2))
+  
+  return(rxy)
+}
+```
+
+Teniendo en cuenta que:
+
+- Si $r=1$ hay una correlación perfecta
+- Si $r = 0$ no existe una relación lineal
+- si $-1 <r<0$ ó $0<r<1$ existe una correlación negativa o positiva respectivamente
+
+Para el calculo de la distancia entre las matrices se tiene de la siguiente manera:
+
+$$
+d(A,B) = ||A-B||
+$$
+```{r}
+# Definimos funcion para calculo de distancia entre matrices
+distanciaMatrices <- function(A, B){
+  dims <- dim(A)
+  AmB <-c()
+  if(is.null(dims)){
+    for (i in 1:length(A)) {
+      AmB <- append(AmB, A[i] - B[i])
+    }
+  }else{
+    for(i in 1:dims[1]){
+      for(j in 1:dims[2]){
+        AmB <- append(AmB, A[i,j] - B[i,j])
+      }
+    }
+  }
+  
+  return(normaEuclidiana(AmB))
+}
+```
+
+El producto interno se define como:
+$$
+<A,B>=\sum_{i,j = 1}^na_{ij}b_{ij}
+$$
+
+```{r}
+# Definimos funcion para el producto interno entre matrices
+productoInternoMatrices <- function(A, B){
+  dims <- dim(A)
+  producto <- 0
+  for (i in 1:dims[1]) {
+    for(j in 1:dims[2]){
+      producto <- A[i,j] * B[i,j]
+    }
+  }
+  
+  return(producto)
+}
+```
+
+Como el primer calculo lo vamos a realizar sobre el area del sepalo  y del petalo, declaramos el procedimiento para ello
+```{r}
+# Definimos funcion para calcular el área del sépalo
+calcularAreaSepalo <- function(datos){
+  a <- datos$Sepal.Length
+  b <- datos$Sepal.Width
+  # Calculamos el área con el área de una elipse
+  areaSepalo <- a*b*pi*(1/4)
+  return(areaSepalo)
+}
+
+# Definimos funcion para calcular el área del sépalo
+calcularAreaPetalo <- function(datos){
+  a <- datos$Petal.Length
+  b <- datos$Petal.Width
+  # Calculamos el área con el área de una elipse
+  areaPetalo <- a*b*pi*(1/4)
+  return(areaPetalo)
+}
+```
+
+Para realizar todos los requerimientos del proyecto vamos a volver a dividir los datos por especie (Setosa, Versicolor, Virginica).
+
+```{r}
+# Filtramos los datos por especie de flor
+dataSetosa <- subset(iris, iris$Species == 'setosa')
+dataVersicolor <- subset(iris, iris$Species == 'versicolor')
+dataVirginica <- subset(iris, iris$Species == 'virginica')
+
+# Eliminamos la columna de especie
+dataSetosa <- dataSetosa[,-5]
+dataVersicolor <- dataVersicolor[,-5]
+dataVirginica <- dataVirginica[,-5]
+```
+
+```{r}
+primer_punto <- function(dataSetosa, dataVersicolor, dataVirginica){
+  # Primero empezamos a medir la distancia del area del petalo entre las distintas especies
+  areaPetaloSetosa <- calcularAreaPetalo(dataSetosa)
+  areaPetaloVirginica <- calcularAreaPetalo(dataVirginica)
+  areaPetaloVersicolor <- calcularAreaPetalo(dataVersicolor)
+
+  # Medimos la distancia entre las diferentes especies
+  distSetosa_Virginica <- distanciaMatrices(areaPetaloSetosa, areaPetaloVirginica)
+  distSetosa_Versicolor <- distanciaMatrices(areaPetaloSetosa, areaPetaloVersicolor)
+  distVirginica_Versicolor <- distanciaMatrices(areaPetaloVirginica, areaPetaloVersicolor)
+
+  # Guardamos lo calculado en un vector
+  Petalos <- c("Norma Setosa Virginica" = distSetosa_Virginica,
+                                 "Norma Setosa Versicolor" = distSetosa_Versicolor,
+                                 "Norma Virginica Versicolor" = distVirginica_Versicolor)
+
+  # Obtenemos el area del sepalo
+  areaSepaloSetosa <- calcularAreaSepalo(dataSetosa)
+  areaSepalVirginica <- calcularAreaSepalo(dataVirginica)
+  areaSepalVersicolor <- calcularAreaSepalo(dataVersicolor)
+
+  # Calculamos la distancia de los sepalos
+  distSetosaVirgi <- distanciaMatrices(areaSepaloSetosa, areaSepalVirginica)
+  distSetosaVersi <- distanciaMatrices(areaSepaloSetosa, areaSepalVersicolor)
+  distVirgiVersi <- distanciaMatrices(areaSepalVirginica, areaSepalVersicolor)
+
+  # Creamos un vector del sepalo
+  Sepalos <- c(distSetosaVersi, distSetosaVersi, distVirgiVersi)
+
+  # Guardamos los datos en una matriz
+  mat <- rbind(Petalos, Sepalos)
+
+  return(mat)
+}
+
+punto_dos <- function(dataSetosa, dataVersicolor, dataVirginica){
+  # Calculamos el área
+  # de los petalos
+  areaPetaloSetosa <- calcularAreaPetalo(dataSetosa)
+  areaPetaloVirginica <- calcularAreaPetalo(dataVirginica)
+  areaPetaloVersicolor <- calcularAreaPetalo(dataVersicolor)
+  
+  # de los sépalos
+  areaSepalSetosa <- calcularAreaSepalo(dataSetosa)
+  areaSepalVirginica <- calcularAreaSepalo(dataVirginica)
+  areaSepalVersicolor <- calcularAreaSepalo(dataVersicolor)
+  
+  # Calculamos el coeficiente para los pétalos
+  corrSetosa_Virginica <- pearsonMuestral(areaPetaloSetosa, areaPetaloVirginica)
+  corrSetosa_Versicolor <- pearsonMuestral(areaPetaloSetosa, areaPetaloVersicolor)
+  corrVirginica_Versicolor <- pearsonMuestral(areaPetaloVirginica, areaPetaloVersicolor)
+  
+  # Guardamos todo en un data frame
+  Petalos <- c("Corr Setosa Virginica" = corrSetosa_Virginica,
+                                 "Corr Setosa Versicolor" = corrSetosa_Versicolor,
+                                 "Corr Virginica Versicolor" = corrVirginica_Versicolor)
+  
+  # Calculamos el coeficiente para los sépalos
+  corrSetosa_Virginica <- pearsonMuestral(areaSepalSetosa, areaSepalVirginica)
+  corrSetosa_Versicolor <- pearsonMuestral(areaSepalSetosa, areaSepalVersicolor)
+  corrVirginica_Versicolor <- pearsonMuestral(areaSepalVirginica, areaSepalVersicolor)
+  
+  # Guardamos todo en un vector
+  Sepalos <- c("Corr Setosa Virginica" = corrSetosa_Virginica,
+                                 "Corr Setosa Versicolor" = corrSetosa_Versicolor,
+                                 "Corr Virginica Versicolor" = corrVirginica_Versicolor)
+  # Guardamos los datos en una matriz
+  mat <- rbind(Petalos, Sepalos)
+
+  return(mat)
+}
+
+punto_tres <- function(dataSetosa, dataVersicolor, dataVirginica){
+
+  # Medimos la distancia entre las plantas
+  distan_Seto_Versi <- distanciaMatrices(dataSetosa, dataVersicolor)
+  distan_Seto_Virgi <- distanciaMatrices(dataSetosa, dataVirginica)
+  distan_Versi_Virgi <- distanciaMatrices(dataVersicolor, dataVirginica)
+  distan_Versi_Seto <- distanciaMatrices(dataVersicolor, dataSetosa)
+  distan_Virgi_Seto <- distanciaMatrices(dataVirginica, dataSetosa)
+  distan_Virgi_Versi <- distanciaMatrices(dataVirginica, dataVersicolor)
+
+  tres <- data.frame("Setosa - Versicolor"= distan_Seto_Versi,
+                   "Setosa - Viginica" = distan_Seto_Virgi,
+                   "Versicolor - Virginica" =distan_Versi_Virgi,
+                   "Versicolor - Setosa" = distan_Versi_Seto,
+                   "Virginica - Setosa" = distan_Virgi_Seto,
+                   "Virginica - Versicolor" = distan_Virgi_Versi)
+  
+  return(tres)
+  
+}
+
+punto_cuatro <- function(dataSetosa, dataVersicolor, dataVirginica){
+  #Obtenemos los datos del petalo
+  petalSetos <- dataSetosa[, 3:4]
+  petalVersicolor <- dataVersicolor[, 3:4]
+  petalVirginica <- dataVirginica[, 3:4]
+  
+  #Medimos la distancia entre las plantas
+  prod_Seto_Versi <- productoInternoMatrices(petalSetos, petalVersicolor)
+  prod_Seto_Virgi <- productoInternoMatrices(petalSetos, petalVirginica)
+  prod_Versi_Virgi <- productoInternoMatrices(petalVersicolor, petalVirginica)
+  
+  # Guardamos los datos en un vector
+  Petalos <- c("Producto Setosa Versicolor" = prod_Seto_Versi,
+                                 "Producto Setosa Virginica" = prod_Seto_Virgi,
+                                 "Producto Versicolor Virginica" = prod_Versi_Virgi)
+  
+  # Obtenemos datos del Sepalo
+  sepaloSetos <- dataSetosa[,1:2]
+  sepalVersicolor <- dataVersicolor[,1:2]
+  sepalVirgi <- dataVirginica[,1:2]
+  
+  # Obtenemos la distancia
+  prod_Seto_Versi <- productoInternoMatrices(sepaloSetos, sepalVersicolor)
+  prod_Seto_Virgi <- productoInternoMatrices(sepaloSetos, sepalVirgi)
+  prod_Versi_Virgi <- productoInternoMatrices(sepalVersicolor, sepalVirgi)
+  
+  # Guardamos los datos en un vector
+  Sepalos <- c(prod_Seto_Versi, prod_Seto_Virgi,prod_Versi_Virgi)
+  
+  cuatro <- rbind(Petalos, Sepalos)
+  
+  return(cuatro)
+}
+```
+
+Con el fin de agrupar las funciones anteriores para ser llamadas, tendremos la siguiente función prinicpal:
+
+```{r}
+main <- function(){
+  
+  #Obtenemos el punto uno
+  print('Norma Euclidia ')
+  pntUno <- primer_punto(dataSetosa, dataVersicolor, dataVirginica)
+  print(data.frame(pntUno))
+  
+  # Obtenemos el punto dos
+  print('Umbral')
+  pntDos <- punto_dos(dataSetosa, dataVersicolor, dataVirginica)
+  print(data.frame(pntDos))
+  
+  # Obtenemos el punto tres
+  print('Distancia entre los elementos')
+  pntTres <- punto_tres(dataSetosa, dataVersicolor, dataVirginica)
+  print(pntTres)
+  
+  # Obtenemos el punto cuatro
+  print('Producto interno')
+  pntCuatro <- punto_cuatro(dataSetosa, dataVersicolor, dataVirginica)
+  print(data.frame(pntCuatro))
+}
+
+main()
+```
