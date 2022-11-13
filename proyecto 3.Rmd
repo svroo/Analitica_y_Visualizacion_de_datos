@@ -1,10 +1,17 @@
 ---
 title: "Distancia Mahalanobis"
-output: default
+output:
   pdf_document: default
-  p: default
+  html_document: default
 ---
-La métrica de Mahalanobis es una métrica invariante de escala que proporciona una medida de la distancia entre un punto $x\in R^n$ generando desde una determinada distribución $P$ y la media $\mu = E_P (x)$ de la distribución. Si se nota con $\sum = E_P (x - \mu )^2$ la matriz de covarianza, entonces, la métrica de Mahalanobis se define por:
+
+**Nombres de los integrantes:**
+
+- Salazar Vega Rodrigo
+- Verduzco Lozano Iván Antonio
+
+
+La métrica de Mahalanobis es una métrica invariante de escala que proporciona una medida de distancia entre un punto $x\in R^n$ generando desde una determinada distribución $P$ y la media $\mu = E_P (x)$ de la distribución. Si se nota con $\sum = E_P (x - \mu )^2$ la matriz de covarianza, entonces, la métrica de Mahalanobis se define por:
 
 $$d_M (x,\mu)=\sqrt{(x-\mu)^T \sum{-1}(x-\mu)}$$ 
 de manera equivalente, 
@@ -13,7 +20,9 @@ Esta distancia es adecuada para diferenciar individuos o poblaciones mediante k 
 
 ### Proyecto 3
 Programa en R que permita calcular la distancia de Mahalanobis sobre el conjunto de datos.
+
 1. Cuantificar el valor de la distancia de Mahalanobis entre las flores: Setosa, Versicolor y Virginica, tomando como base la longitud y anchura del sépalo y pétalo de cada flor.
+
 2. Graficar los valores de las distancias calculadas.
 
 Tenemos que obtener la matriz de **covarianzas muestrales** $\Sigma$ o S viene dada por la siguiente expresión:
@@ -38,10 +47,10 @@ centroides <- function(a){
   else{
     n <- length(a[,1])
     rest <- c()
-    for (i in 1:dimz[2]){
+    for (i in 1:dims[2]){
       suma <- 0
-      for (j in 1:dimz[1]){
-        suma <- X[j,i] + suma
+      for (j in 1:dims[1]){
+        suma <- a[j,i] + suma
       }
       rest <- append(rest,suma/n)
     }
@@ -120,7 +129,7 @@ Procederemos con cargar el dataset con el que vamos a trabajar
 ```{r}
 # Importamos de data set
 data("iris")
-print(iris)
+head(iris)
 ```
 
 Vamos a calcular la distancia de Mahalanobis la cual esta dado por la formula:
@@ -142,23 +151,64 @@ mahalanobis <- function(x, center, cov, inverted=FALSE, ...)
 	  cov <- solve(cov, ...)
     setNames(rowSums(x %*% cov * x), rownames(x))
 }
-
 ```
 
-Empezaremos dividiendo los datos en tipos de planta:
+Empezaremos calculando la distancia entre los datos de petalo del data set de iris:
 ```{r}
-# Filtramos los datos por especie de flor
-dataSetosa <- subset(iris, iris$Species == 'setosa')
-dataVersicolor <- subset(iris, iris$Species == 'versicolor')
-dataVirginica <- subset(iris, iris$Species == 'virginica')
-
-# Eliminamos la columna de especie
-dataSetosa <- dataSetosa[,-5]
-dataVersicolor <- dataVersicolor[,-5]
-dataVirginica <- dataVirginica[,-5]
+plot(x = iris$Petal.Length, y = iris$Petal.Width, col = iris$Species, 
+     main = "Iris - Pétalo", xlab = "Largo", ylab = "Ancho")
+legend(x = "topleft", legend = c("Setosa", "Versicolor", "Virginica"), 
+       fill = c("black", "red", "green"), title = "Especie")
 ```
 
-Empezaremos calculando la distancia entre los datos de petalo de la Setosa:
+Para ello, resumimos en una función el cálculo de mahalanobis y un gráfico correspondiente.
+
 ```{r}
-plot(dataSetosa$)
+calculo_mahalanobis_iris <- function(data ,spe1, spe2, tipo){
+  data_spe1 <- subset(data, data$Species==spe1)
+  data_spe1_spe2 <- rbind(data_spe1, subset(data, data$Species==spe2))
+  data_spe1_spe2 <- data_spe1_spe2[,-3]
+  
+  cent <- centroides(data)
+  m_cov <- Matriz_cov(data)
+  maha_spe1_spe2 <- mahalanobis(data_spe1_spe2, cent, m_cov)
+  cat("La distancia de cada observacion entre ",spe1," y ",spe2,", es:",maha_spe1_spe2)
+  barplot(sort(maha_spe1_spe2), xlab = 'índice', ylab = 'distancia', main = paste('Distribución entre los ',tipo,' de', spe1, ' y ', spe2))
+}
 ```
+
+```{r}
+calculo_mahalanobis_iris(iris[, 3:5], 'setosa', 'versicolor', 'pétalos')
+```
+
+```{r}
+calculo_mahalanobis_iris(iris[, 3:5], 'setosa', 'virginica', 'pétalos')
+```
+
+```{r}
+calculo_mahalanobis_iris(iris[, 3:5], 'virginica', 'versicolor', 'pétalos')
+```
+
+Ahora calcularemos la distancia entre los datos para el sépalo de cada una de las especies:
+
+```{r}
+plot(x = iris$Sepal.Length, y = iris$Sepal.Width, col = iris$Species, 
+     main = "Iris - Sépalo", xlab = "Largo", ylab = "Ancho")
+legend(x = "topleft", legend = c("Setosa", "Versicolor", "Virginica"), 
+       fill = c("black", "red", "green"), title = "Especie")
+```
+
+
+```{r}
+calculo_mahalanobis_iris(iris[,c(1,2,5)], 'setosa', 'versicolor', 'sépalos')
+```
+```{r}
+calculo_mahalanobis_iris(iris[,c(1,2,5)], 'setosa', 'virginica', 'sépalos')
+```
+
+
+```{r}
+calculo_mahalanobis_iris(iris[,c(1,2,5)], 'virginica', 'versicolor', 'sépalos')
+```
+
+

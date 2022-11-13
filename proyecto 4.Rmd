@@ -1,0 +1,196 @@
+---
+title: "Distancia Mahalanobis"
+output: html_document
+---
+
+**Nombres de los integrantes:**
+
+- Salazar Vega Rodrigo
+- Verduzco Lozano Iván Antonio
+
+La métrica de Mahalanobis es una métrica invariante de escala que proporciona una medida de la distancia entre un punto $x\in R^n$ generando desde una determinada distribución $P$ y la media $\mu = E_P (x)$ de la distribución. Si se nota con $\sum = E_P (x - \mu )^2$ la matriz de covarianza, entonces, la métrica de Mahalanobis se define por:
+
+$$d_M (x,\mu)=\sqrt{(x-\mu)^T \sum{-1}(x-\mu)}$$
+
+de manera equivalente, 
+$$d^2_M(x,\mu) = (x-\mu)^T \sum-1(x-\mu)$$
+Esta distancia es adecuada para diferenciar individuos o poblaciones mediante k variables aleatorias.
+
+### Proyecto 4
+
+Considerar los datos económicos de la siguiente tabla (dados en millones de dólares) de corporaciones industriales
+
+1. Calcular la distancia de Mahalanobis entre Ford y Exxon
+
+2. Calcular la distancia de Mahalanobis entre General Motors e IBM
+
+3. Calcular la distancia de Mahalanobis entre Philip Morris y Texaco
+
+Nota: La tabla de datos se sube como imagen, recuerden crear un CSV para procesar la información.
+
+Recordemos que para la distancia de mahalanobis, tenemos que obtener la matriz de **covarianzas muestrales** $\Sigma$ o S viene dada por la siguiente expresión:
+$$\Sigma=\begin{bmatrix}S_{11} & S_{12} & S_{13} & S_{14}\\ S_{21} & S_{22} & S_{23} & S_{24} \\ S_{31} & S_{32} & S_{33} & S_{34} \\ S_{41} & S_{42} & S_{43} & S_{44}\end{bmatrix} \\ S_{ij} = \sum_{k=1}^n = (x_{ki} - \overline{x}_i ) (x_{kj} - \overline{x}_j )$$
+
+Primero declaramos las funciones para obtener la matriz de covarianza, así como todas las funciones que vamos a ocupar
+
+```{r}
+# Primero definimos la funcion para calcular su promedio
+centroides <- function(a){
+  # a = vector a querer obtener su promedio
+  dims <- dim(a)
+  
+  if(is.null(dims)){
+    suma = 0
+    n = length(a)
+    for (i in a){
+      suma = i + suma
+    }
+    return(suma/n)
+  }
+  else{
+    n <- length(a[,1])
+    rest <- c()
+    for (i in 1:dims[2]){
+      suma <- 0
+      for (j in 1:dims[1]){
+        suma <- a[j,i] + suma
+      }
+      rest <- append(rest,suma/n)
+    }
+    return(rest)
+  }
+}
+
+matriz_valor_menos_media <- function(a, prom){
+  if (length(a) == 0 || length(prom) == 0){
+    return('Matriz no valida')
+  }
+  
+  dimz = dim(a)
+  bfinal <- matrix(NA, dimz[1], dimz[2])
+  
+  for (i in 1:dimz[2]){
+    b_columna <- (a[,i] - prom[i])
+    bfinal[,i] <- b_columna
+  }
+  return(bfinal)
+}
+
+transpuesta <- function(a){
+  dimz <- dim(a)
+  
+  if(is.null(dimz)){
+    n = length(a)
+    mat <- matrix(NA, n, 1)
+    for (i in 1:n){
+      r <- (i)
+      mat[i,] <- r
+    }
+    return(mat)
+  }
+  else{
+    transpues <- matrix(NA, dimz[2], dimz[1])
+    for (i in 1:dimz[1]){
+      columna <- (a[i,])
+      transpues[,i] <- columna
+    }
+    return(transpues)
+  }
+}
+Matriz_cov <- function(a){
+  if(is.null(a)){
+    return('Matriz no valida')
+  }
+  
+  
+  promedios = c()
+  dims <- dim(a)
+  constante = 1 / (dims[1] - 1)
+  
+  for (i in 1:dims[2]){
+    promedios <- append(promedios, centroides(a[,i]))
+  }
+  
+  mat = matriz_valor_menos_media(a= a, prom = promedios)
+  
+  # Obtencion de la transpuesta
+  #t_mat = t(mat)
+  t_mat = transpuesta(mat)
+  
+  pre_cov = t_mat %*% mat
+  
+  mat_cov = pre_cov * constante
+  
+  return(mat_cov)
+}
+
+```
+
+Vamos a calcular la distancia de Mahalanobis la cual esta dado por la formula:
+
+$$d^2_M (i,j) = (x^{(i)}-x^{(j)})\Sigma^{-1} (x^{(i)}-x^{(j)})^T$$
+
+*Nota: Si quisieramos la distancia hay que sacar la $\sqrt{i,j}$
+
+
+La distancia cuadrática de Mahalanobis del i-ésimo individuo al centroide de la matriz de datos, se designa como$d^2_M(i)$. Esta dado por la siguiente formula:
+$$d^2_M(i) = (x^{i}-c)\Sigma^{-1}(x^{(i)}-c)^T$$
+
+```{r}
+mahalan_dis <- function(x, center, cov, inverted=FALSE, ...)
+{
+    x <- if(is.vector(x)) matrix(x, ncol=length(x)) else as.matrix(x)
+    
+    if(!identical(center, FALSE))
+	  x <- sweep(x, 2L, center)# = "x - center"
+    
+    if(!inverted)
+	  cov <- solve(cov, ...)
+    setNames(rowSums(x %*% cov * x), rownames(x))
+}
+```
+
+Procederemos con crear y cargar el dataset con el que vamos a trabajar
+
+```{r}
+data <- read.csv('./empresas.csv')
+data
+```
+Creamos una función para obtener la matriz con las compañias a comparar, así como el calculo de los centroides y la matriz de covarianza de los datos que previamente cargamos
+```{r}
+centroid <- centroides(data[,-1])
+mat_cov = Matriz_cov(data[,-1])
+
+matriz_a_medir <- function(emp1, emp2, x){
+  # Creamos un vector para cada empresa
+  vec_1 <- subset(x, x$compañia == emp1)
+  vec_1 <- vec_1[, -1]
+  vec_1 <- unlist(vec_1)
+  
+  vec_2 <- subset(x, x$compañia == emp2)
+  vec_2 <- vec_2[,-1]
+  vec_2 <- unlist(vec_2)
+  
+  # Restamos los vectores resultantes
+  vec_f <- vec_1 - vec_2
+
+  
+  # Creamos una matriz con los dos vectores
+  dat <- rbind(vec_f)
+  
+  mahala <- mahalan_dis(dat, centroid, mat_cov)
+  # print(mahala)
+  
+  cat("La distancia de cada observacion entre ",emp1," y ",emp2,", es:",mahala)
+  plot(sort(mahala), xlab = 'índice', ylab = 'distancia', main = paste('Distribución entre ', emp1, ' y ', emp2))
+  return(mahala)
+}
+```
+
+
+```{r}
+ford_exxon <- matriz_a_medir('Ford', 'Exxon', data)
+general_ibm = matriz_a_medir('General Motors', 'IBM', data)
+Philip_Texaco <- matriz_a_medir('Philip Morris', 'Texaco', data)
+```
+
